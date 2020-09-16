@@ -1,10 +1,6 @@
 package com.github.rmtmckenzie.qrmobilevision;
 
-import android.content.Context;
 import android.util.Log;
-import android.view.Display;
-import android.view.Surface;
-import android.view.WindowManager;
 
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
@@ -16,7 +12,6 @@ import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcode;
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetector;
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetectorOptions;
 import com.google.firebase.ml.vision.common.FirebaseVisionImage;
-import com.google.firebase.ml.vision.common.FirebaseVisionImageMetadata;
 
 import java.util.List;
 
@@ -28,9 +23,11 @@ class QrDetector implements OnSuccessListener<List<FirebaseVisionBarcode>>, OnFa
     private static final String TAG = "cgr.qrmv.QrDetector";
     private final QrReaderCallbacks communicator;
     private final FirebaseVisionBarcodeDetector detector;
+    private boolean invertImageFlag = false;
 
     public interface Frame {
         FirebaseVisionImage toImage();
+        FirebaseVisionImage toInvertedImage();
 
         void close();
     }
@@ -67,7 +64,12 @@ class QrDetector implements OnSuccessListener<List<FirebaseVisionBarcode>>, OnFa
     private void processFrame(Frame frame) {
         FirebaseVisionImage image;
         try {
-            image = frame.toImage();
+            if (!invertImageFlag) {
+                image = frame.toImage();
+            } else {
+                image = frame.toInvertedImage();
+            }
+            invertImageFlag = !invertImageFlag;
         } catch (IllegalStateException ex) {
             // ignore state exception from making frame to image
             // as the image may be closed already.

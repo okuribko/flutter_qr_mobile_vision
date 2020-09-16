@@ -2,8 +2,17 @@ package com.github.rmtmckenzie.qrmobilevision;
 
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
 import android.graphics.ImageFormat;
+import android.graphics.Matrix;
+import android.graphics.Paint;
+import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
+import android.graphics.YuvImage;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
@@ -27,6 +36,8 @@ import androidx.annotation.RequiresApi;
 import com.google.firebase.ml.vision.common.FirebaseVisionImage;
 import com.google.firebase.ml.vision.common.FirebaseVisionImageMetadata;
 
+import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -216,8 +227,77 @@ class QrCameraC2 implements QrCamera {
         }
 
         @Override
+        public FirebaseVisionImage toInvertedImage() {
+            return FirebaseVisionImage.fromBitmap(invert(imageToBitmap(image, firebaseOrientation * 90)));
+        }
+
+        @Override
         public void close() {
             image.close();
+        }
+
+        public Bitmap imageToBitmap(Image image, float rotationDegrees) {
+
+            assert (image.getFormat() == ImageFormat.NV21);
+
+            // NV21 is a plane of 8 bit Y values followed by interleaved  Cb Cr
+            ByteBuffer ib = ByteBuffer.allocate(image.getHeight() * image.getWidth() * 2);
+
+            ByteBuffer y = image.getPlanes()[0].getBuffer();
+            ByteBuffer cr = image.getPlanes()[1].getBuffer();
+            ByteBuffer cb = image.getPlanes()[2].getBuffer();
+            ib.put(y);
+            ib.put(cb);
+            ib.put(cr);
+
+            YuvImage yuvImage = new YuvImage(ib.array(),
+                ImageFormat.NV21, image.getWidth(), image.getHeight(), null);
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            yuvImage.compressToJpeg(new Rect(0, 0,
+                image.getWidth(), image.getHeight()), 50, out);
+            byte[] imageBytes = out.toByteArray();
+            Bitmap bm = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+            Bitmap bitmap = bm;
+
+            if (rotationDegrees != 0) {
+                Matrix matrix = new Matrix();
+                matrix.postRotate(rotationDegrees);
+                Bitmap scaledBitmap = Bitmap.createScaledBitmap(bm,
+                    bm.getWidth(), bm.getHeight(), true);
+                bitmap = Bitmap.createBitmap(scaledBitmap, 0, 0,
+                    scaledBitmap.getWidth(), scaledBitmap.getHeight(), matrix, true);
+            }
+            return bitmap;
+        }
+
+        public Bitmap invert(Bitmap src)
+        {
+            int height = src.getHeight();
+            int width = src.getWidth();
+
+            Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(bitmap);
+            Paint paint = new Paint();
+
+            ColorMatrix matrixGrayscale = new ColorMatrix();
+            matrixGrayscale.setSaturation(0);
+
+            ColorMatrix matrixInvert = new ColorMatrix();
+            matrixInvert.set(new float[]
+                {
+                    -1.0f, 0.0f, 0.0f, 0.0f, 255.0f,
+                    0.0f, -1.0f, 0.0f, 0.0f, 255.0f,
+                    0.0f, 0.0f, -1.0f, 0.0f, 255.0f,
+                    0.0f, 0.0f, 0.0f, 1.0f, 0.0f
+                });
+            matrixInvert.preConcat(matrixGrayscale);
+
+            ColorMatrixColorFilter filter = new ColorMatrixColorFilter(matrixInvert);
+            paint.setColorFilter(filter);
+
+            canvas.drawBitmap(src, 0, 0, paint);
+            return bitmap;
         }
 
     }

@@ -159,6 +159,11 @@ class QrCameraC1 implements QrCamera {
         }
 
         @Override
+        public FirebaseVisionImage toInvertedImage() {
+            return toImage();// api > 21 always used
+        }
+
+        @Override
         public void close() {
             data = null;
         }
