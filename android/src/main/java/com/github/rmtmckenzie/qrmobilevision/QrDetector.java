@@ -23,6 +23,8 @@ class QrDetector implements OnSuccessListener<List<FirebaseVisionBarcode>>, OnFa
     private static final String TAG = "cgr.qrmv.QrDetector";
     private final QrReaderCallbacks communicator;
     private final FirebaseVisionBarcodeDetector detector;
+
+    private final boolean supportInvertedBarcodes;
     private boolean invertImageFlag = false;
 
     public interface Frame {
@@ -38,9 +40,10 @@ class QrDetector implements OnSuccessListener<List<FirebaseVisionBarcode>>, OnFa
     @GuardedBy("this")
     private Frame processingFrame;
 
-    QrDetector(QrReaderCallbacks communicator, FirebaseVisionBarcodeDetectorOptions options) {
+    QrDetector(QrReaderCallbacks communicator, FirebaseVisionBarcodeDetectorOptions options, boolean supportInvertedBarcodes) {
         this.communicator = communicator;
         this.detector = FirebaseVision.getInstance().getVisionBarcodeDetector(options);
+        this.supportInvertedBarcodes = supportInvertedBarcodes;
     }
 
     void detect(Frame frame) {
@@ -64,12 +67,16 @@ class QrDetector implements OnSuccessListener<List<FirebaseVisionBarcode>>, OnFa
     private void processFrame(Frame frame) {
         FirebaseVisionImage image;
         try {
-            if (!invertImageFlag) {
-                image = frame.toImage();
+            if (supportInvertedBarcodes) {
+                if (!invertImageFlag) {
+                    image = frame.toImage();
+                } else {
+                    image = frame.toInvertedImage();
+                }
+                invertImageFlag = !invertImageFlag;
             } else {
-                image = frame.toInvertedImage();
+                image = frame.toImage();
             }
-            invertImageFlag = !invertImageFlag;
         } catch (IllegalStateException ex) {
             // ignore state exception from making frame to image
             // as the image may be closed already.

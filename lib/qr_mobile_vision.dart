@@ -45,6 +45,7 @@ class QrMobileVision {
     @required int height,
     @required QRCodeHandler qrCodeHandler,
     List<BarcodeFormats> formats = _defaultBarcodeFormats,
+    bool supportInvertedBarcodes = false
   }) async {
     final _formats = formats ?? _defaultBarcodeFormats;
     assert(_formats.length > 0);
@@ -58,7 +59,8 @@ class QrMobileVision {
       'targetWidth': width,
       'targetHeight': height,
       'heartbeatTimeout': 0,
-      'formats': formatStrings
+      'formats': formatStrings,
+      'supportInvertedBarcodes': supportInvertedBarcodes
     });
 
     // invokeMethod returns Map<dynamic,...> in dart 2.0

@@ -21,19 +21,21 @@ class QrReader {
     private final QRReaderStartedCallback startedCallback;
     private Heartbeat heartbeat;
     private CameraSource camera;
+    private boolean supportInvertedBarcodes = false;
 
     QrReader(int width, int height, Activity context, FirebaseVisionBarcodeDetectorOptions options,
              final QRReaderStartedCallback startedCallback, final QrReaderCallbacks communicator,
-             final SurfaceTexture texture) {
+             final SurfaceTexture texture, boolean supportInvertedBarcodes) {
         this.context = context;
         this.startedCallback = startedCallback;
+        this.supportInvertedBarcodes = supportInvertedBarcodes;
 
         if (android.os.Build.VERSION.SDK_INT >= 21) {
             Log.i(TAG, "Using new camera API.");
-            qrCamera = new QrCameraC2(width, height, texture, context, new QrDetector(communicator, options));
+            qrCamera = new QrCameraC2(width, height, texture, context, new QrDetector(communicator, options, supportInvertedBarcodes));
         } else {
             Log.i(TAG, "Using old camera API.");
-            qrCamera = new QrCameraC1(width, height, texture, context, new QrDetector(communicator, options));
+            qrCamera = new QrCameraC1(width, height, texture, context, new QrDetector(communicator, options, false));
         }
     }
 

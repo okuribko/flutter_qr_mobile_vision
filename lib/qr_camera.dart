@@ -27,6 +27,7 @@ class QrCamera extends StatefulWidget {
     WidgetBuilder offscreenBuilder,
     ErrorCallback onError,
     this.formats,
+    this.supportInvertedBarcodes = false
   })  : notStartedBuilder = notStartedBuilder ?? _defaultNotStartedBuilder,
         offscreenBuilder =
             offscreenBuilder ?? notStartedBuilder ?? _defaultOffscreenBuilder,
@@ -41,6 +42,7 @@ class QrCamera extends StatefulWidget {
   final WidgetBuilder offscreenBuilder;
   final ErrorCallback onError;
   final List<BarcodeFormats> formats;
+  final bool supportInvertedBarcodes;
 
   @override
   QrCameraState createState() => new QrCameraState();
@@ -83,6 +85,7 @@ class QrCameraState extends State<QrCamera> with WidgetsBindingObserver {
       height: height.toInt(),
       qrCodeHandler: widget.qrCodeCallback,
       formats: widget.formats,
+      supportInvertedBarcodes: widget.supportInvertedBarcodes
     );
     return previewDetails;
   }

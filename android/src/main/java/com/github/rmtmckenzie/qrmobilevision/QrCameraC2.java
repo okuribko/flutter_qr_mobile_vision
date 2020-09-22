@@ -56,6 +56,7 @@ class QrCameraC2 implements QrCamera {
 
     private static final String TAG = "cgr.qrmv.QrCameraC2";
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
+    private static final int SQUARE_SIZE = 200;
 
     static {
         ORIENTATIONS.append(Surface.ROTATION_0, 90);
@@ -228,7 +229,13 @@ class QrCameraC2 implements QrCamera {
 
         @Override
         public FirebaseVisionImage toInvertedImage() {
-            return FirebaseVisionImage.fromBitmap(invert(imageToBitmap(image, firebaseOrientation * 90)));
+            Bitmap src = imageToBitmap(image, firebaseOrientation * 90);
+            int cx = src.getWidth() / 2 - SQUARE_SIZE / 2;
+            int cy = src.getHeight() / 2 - SQUARE_SIZE / 2;
+
+            Bitmap cropped = Bitmap.createBitmap(src, cx, cy, SQUARE_SIZE, SQUARE_SIZE);
+            Bitmap inverted = invert(cropped);
+            return FirebaseVisionImage.fromBitmap(inverted);
         }
 
         @Override
@@ -247,8 +254,8 @@ class QrCameraC2 implements QrCamera {
             ByteBuffer cr = image.getPlanes()[1].getBuffer();
             ByteBuffer cb = image.getPlanes()[2].getBuffer();
             ib.put(y);
-            ib.put(cb);
-            ib.put(cr);
+//            ib.put(cb);
+//            ib.put(cr);
 
             YuvImage yuvImage = new YuvImage(ib.array(),
                 ImageFormat.NV21, image.getWidth(), image.getHeight(), null);
