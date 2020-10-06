@@ -106,6 +106,7 @@ class QrReader: NSObject {
   var previewSize: CMVideoDimensions!
   var textureId: Int64!
   var pixelBuffer : CVPixelBuffer?
+  var invertedRead = false
   let barcodeDetector: VisionBarcodeDetector
   let cameraPosition = AVCaptureDevice.Position.back
   let qrCallback: (_:String) -> Void
@@ -192,7 +193,25 @@ extension QrReader: AVCaptureVideoDataOutputSampleBufferDelegate {
       return
     }
     
-    let image = VisionImage(buffer: sampleBuffer)
+    let image: VisionImage!
+    if invertedRead {
+        let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer)
+        let inputCIImage = CIImage(cvPixelBuffer: pixelBuffer!)
+        let colorInvertFilter = CIFilter(name: "CIColorInvert")
+        colorInvertFilter?.setValue(inputCIImage, forKey: kCIInputImageKey)
+        let invertedCIImage = colorInvertFilter?.outputImage
+        let ciContext = CIContext()
+        if let invertedImage =  invertedCIImage {
+            let cgImage = ciContext.createCGImage(invertedImage, from: invertedImage.extent)
+            let uiImage = UIImage(cgImage: cgImage!)
+            image = VisionImage(image: uiImage)
+        } else {
+            image = VisionImage(buffer: sampleBuffer)
+        }
+    } else {
+        image = VisionImage(buffer: sampleBuffer)
+    }
+    invertedRead = !invertedRead
     image.metadata = metadata
     
     DispatchQueue.global(qos: DispatchQoS.QoSClass.utility).async {
