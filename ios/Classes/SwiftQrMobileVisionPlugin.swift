@@ -21,6 +21,10 @@ class MapArgumentReader {
   func stringArray(key: String) -> [String]? {
     return args?[key] as? [String]
   }
+    
+  func bool(key: String) -> Bool? {
+    return args?[key] as? Bool
+  }
   
 }
 
@@ -56,7 +60,8 @@ public class SwiftQrMobileVisionPlugin: NSObject, FlutterPlugin {
       
       guard let targetWidth = argReader.int(key: "targetWidth"),
             let targetHeight = argReader.int(key: "targetHeight"),
-            let formatStrings = argReader.stringArray(key: "formats") else {
+            let formatStrings = argReader.stringArray(key: "formats"),
+            let supportInvertedBarcodes = argReader.bool(key: "supportInvertedBarcodes") else {
           result(FlutterError(code: "INVALID_ARGUMENT", message: "Missing a required argument", details: "Expecting targetWidth, targetHeight, formats, and optionally heartbeatTimeout"))
           return
       }
@@ -67,7 +72,8 @@ public class SwiftQrMobileVisionPlugin: NSObject, FlutterPlugin {
         targetWidth: targetWidth,
         targetHeight: targetHeight,
         textureRegistry: textureRegistry,
-        options: options) { [unowned self] qr in
+        options: options,
+        supportInvertedBarcodes: supportInvertedBarcodes) { [unowned self] qr in
           self.channel.invokeMethod("qrRead", arguments: qr)
       }
       

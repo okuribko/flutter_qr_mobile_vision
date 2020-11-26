@@ -105,17 +105,19 @@ class QrReader: NSObject {
   var captureSession: AVCaptureSession!
   var previewSize: CMVideoDimensions!
   var textureId: Int64!
-  var pixelBuffer : CVPixelBuffer?
+  var pixelBuffer: CVPixelBuffer?
   var invertedRead = false
   let barcodeDetector: VisionBarcodeDetector
   let cameraPosition = AVCaptureDevice.Position.back
   let qrCallback: (_:String) -> Void
+  let supportInvertedBarcodes: Bool
   
-  init(targetWidth: Int, targetHeight: Int, textureRegistry: FlutterTextureRegistry, options: VisionBarcodeDetectorOptions, qrCallback: @escaping (_:String) -> Void) {
+  init(targetWidth: Int, targetHeight: Int, textureRegistry: FlutterTextureRegistry, options: VisionBarcodeDetectorOptions, supportInvertedBarcodes: Bool, qrCallback: @escaping (_:String) -> Void) {
     self.targetWidth = targetWidth
     self.targetHeight = targetHeight
     self.textureRegistry = textureRegistry
     self.qrCallback = qrCallback
+    self.supportInvertedBarcodes = supportInvertedBarcodes
     
     let vision = Vision.vision()
     self.barcodeDetector = vision.barcodeDetector(options: options)
@@ -194,7 +196,7 @@ extension QrReader: AVCaptureVideoDataOutputSampleBufferDelegate {
     }
     
     let image: VisionImage!
-    if invertedRead {
+    if supportInvertedBarcodes && invertedRead {
         let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer)
         let inputCIImage = CIImage(cvPixelBuffer: pixelBuffer!)
         let colorInvertFilter = CIFilter(name: "CIColorInvert")
