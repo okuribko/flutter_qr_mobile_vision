@@ -117,7 +117,13 @@ extension QrCameraDirection {
   }
 }
 
-
+extension UIDevice {
+    var deviceIdentifier: String {
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        return String(cString: withUnsafePointer(to: &systemInfo.machine) { $0.withMemoryRebound(to: CChar.self, capacity: 1) { $0 } })
+    }
+}
 
 class QrReader: NSObject {
   let targetWidth: Int
@@ -134,7 +140,13 @@ class QrReader: NSObject {
   let barcodeDetector: BarcodeScanner
   let qrCallback: (_:String) -> Void
   
-  
+  // List of device identifiers that should use the wide-angle camera
+  private let wideAngleCameraDevices: Set<String> = [
+    "iPhone12,3", // iPhone 11 Pro
+    "iPhone12,5", // iPhone 11 Pro Max
+    "iPhone13,3", // iPhone 12 Pro
+    "iPhone13,4"  // iPhone 12 Pro Max
+  ]
   
   init(targetWidth: Int, targetHeight: Int, direction: QrCameraDirection, textureRegistry: FlutterTextureRegistry, options: BarcodeScannerOptions, qrCallback: @escaping (_:String) -> Void) throws {
     self.targetWidth = targetWidth
@@ -148,9 +160,16 @@ class QrReader: NSObject {
     super.init()
     
     captureSession = AVCaptureSession()
+      
+    let deviceIdentifier = UIDevice.current.deviceIdentifier
+  
+    // Determine if the device should use the wide-angle camera
+    let shouldUseWideAngleCamera = wideAngleCameraDevices.contains(deviceIdentifier)
     
     if #available(iOS 13.0, *) {
-        captureDevice = AVCaptureDevice.default(AVCaptureDevice.DeviceType.builtInTripleCamera, for: AVMediaType.video, position: cameraPosition)
+        captureDevice = shouldUseWideAngleCamera
+          ? AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: cameraPosition)
+          : AVCaptureDevice.default(.builtInTripleCamera, for: .video, position: cameraPosition)
     }
     
     if captureDevice == nil {
